@@ -1,0 +1,137 @@
+---
+title: "Monitor power consumption with Sonoff POW devices"
+description: "Read monthly and daily energy usage, raw power data, and live temperature and humidity readings from Sonoff POW and TH-series devices."
+---
+
+Certain eWeLink devices do more than switch loads on and off — they record electricity consumption over time and measure environmental conditions. ewelink-api exposes this data through a dedicated set of methods that return structured readings you can log, chart, or use to trigger automations.
+
+<Note>
+  Power usage methods (`getDevicePowerUsage`, `getDevicePowerUsageRaw`) require a device that records electricity consumption, such as the **Sonoff POW** or **Sonoff POW R2**. Temperature and humidity methods (`getDeviceCurrentTH`, `getDeviceCurrentTemperature`, `getDeviceCurrentHumidity`) require a device with a sensor, such as the **Sonoff TH10** or **TH16**.
+</Note>
+
+## Power consumption
+
+### getDevicePowerUsage(deviceId)
+
+Returns the current month's total energy consumption in kWh alongside a day-by-day breakdown. Days are listed in descending order starting from the most recent.
+
+```javascript
+const usage = await connection.getDevicePowerUsage('<your device id>');
+console.log(usage);
+```
+
+Response:
+
+```javascript
+{
+  status: 'ok',
+  monthly: 109.78,
+  daily: [
+    { day: 26, usage: 4.19 },
+    { day: 25, usage: 2.11 },
+    { day: 24, usage: 3.74 },
+    { day: 23, usage: 8.23 },
+    { day: 22, usage: 3.16 },
+    { day: 21, usage: 3.95 },
+    { day: 20, usage: 3.38 },
+    { day: 19, usage: 4.56 },
+    { day: 18, usage: 1.51 },
+    { day: 17, usage: 2.4 },
+    { day: 16, usage: 1.5 },
+    { day: 15, usage: 7.28 },
+    { day: 14, usage: 7.44 },
+    { day: 13, usage: 3.21 },
+    { day: 12, usage: 5.5 },
+    { day: 11, usage: 4.43 },
+    { day: 10, usage: 3.15 },
+    { day: 9, usage: 1.33 },
+    { day: 8, usage: 2.9 },
+    { day: 7, usage: 6.03 },
+    { day: 6, usage: 7.48 },
+    { day: 5, usage: 5.94 },
+    { day: 4, usage: 3.64 },
+    { day: 3, usage: 2.39 },
+    { day: 2, usage: 3.10 },
+    { day: 1, usage: 7.23 }
+  ]
+}
+```
+
+The `monthly` value is the sum of all `daily` entries for the current month. The `daily` array contains one entry per day that has recorded usage, with `day` being the day-of-month number.
+
+### getDevicePowerUsageRaw(deviceId)
+
+Returns the underlying power data from the device without any parsing applied. Use this if you need access to the raw `hundredDaysKwhData` field that `getDevicePowerUsage` processes internally.
+
+```javascript
+const raw = await connection.getDevicePowerUsageRaw('<your device id>');
+console.log(raw);
+```
+
+Response:
+
+```javascript
+{
+  status: 'ok',
+  response: {
+    hundredDaysKwhData: '<raw encoded string from device>'
+  }
+}
+```
+
+## Temperature and humidity
+
+### getDeviceCurrentTH(deviceId)
+
+Returns both the current temperature and humidity in a single call. This is the most efficient option when you need both readings.
+
+```javascript
+const temphumd = await connection.getDeviceCurrentTH('<your device id>');
+console.log(temphumd);
+```
+
+Response:
+
+```javascript
+{
+  status: 'ok',
+  temperature: '20',
+  humidity: '76'
+}
+```
+
+### getDeviceCurrentTemperature(deviceId)
+
+Returns only the current temperature reading.
+
+```javascript
+const temperature = await connection.getDeviceCurrentTemperature('<your device id>');
+console.log(temperature);
+```
+
+Response:
+
+```javascript
+{
+  status: 'ok',
+  temperature: '20'
+}
+```
+
+### getDeviceCurrentHumidity(deviceId)
+
+Returns only the current humidity reading.
+
+```javascript
+const humidity = await connection.getDeviceCurrentHumidity('<your device id>');
+console.log(humidity);
+```
+
+Response:
+
+```javascript
+{
+  status: 'ok',
+  humidity: '76'
+}
+```

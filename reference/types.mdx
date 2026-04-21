@@ -1,0 +1,261 @@
+---
+title: "TypeScript type definitions for ewelink-api"
+description: "Complete TypeScript interfaces for ewelink-api: Device, DeviceState, PowerUsage, LoginInfo, and all other types exported from index.d.ts."
+---
+
+ewelink-api ships with TypeScript type definitions in `index.d.ts`. These cover the constructor, all method return values, and every nested object. Import the types you need alongside the default export.
+
+```typescript
+import eWeLink, { Device, DeviceState, PowerUsage, LoginInfo } from 'ewelink-api';
+```
+
+---
+
+## eWeLink class
+
+The main class exported as the default export.
+
+```typescript
+class eWeLink {
+  constructor(params:
+    | { email: string; password: string; }
+    | { at: string; }
+    | { at: string; apiKey: string; }
+  );
+  login(): Promise<LoginInfo>;
+  openWebSocket(callback: (data: {}) => void): Promise<any>;
+  getDevices(): Promise<Device[]>;
+  getDevice(deviceId: string): Promise<Device>;
+  getDevicePowerState(deviceId: string, channel?: number): Promise<DeviceState>;
+  setDevicePowerState(deviceId: string, state?: string, channel?: number): Promise<DeviceState>;
+  toggleDevice(deviceId: string, channel?: number): Promise<DeviceState>;
+  getDevicePowerUsage(deviceId: string): Promise<PowerUsage>;
+  getDeviceCurrentTH(deviceId: string): Promise<TemperatureHumidity>;
+  getDeviceCurrentTemperature(deviceId: string): Promise<TemperatureHumidity>;
+  getDeviceCurrentHumidity(deviceId: string): Promise<TemperatureHumidity>;
+  getDeviceChannelCount(deviceId: string): Promise<SwitchCount>;
+  getFirmwareVersion(deviceId: string): Promise<FirmwareVersion>;
+}
+```
+
+---
+
+## DeviceState
+
+Returned by `getDevicePowerState`, `setDevicePowerState`, and `toggleDevice`.
+
+```typescript
+interface DeviceState {
+  status?: string;   // 'ok' on success
+  state?: string;    // 'on' or 'off'
+  error?: number;    // error code if request failed
+  msg?: string;      // error message if request failed
+}
+```
+
+---
+
+## Device
+
+Returned by `getDevices()` and `getDevice()`. Represents a single eWeLink-registered device.
+
+```typescript
+interface Device {
+  _id: string;
+  name: string;
+  type: string;
+  deviceid: string;
+  apikey: string;
+  extra: Extra2;
+  __v: number;
+  onlineTime: string;
+  ip: string;
+  location: string;
+  offlineTime: string;
+  deviceStatus: string;
+  tags: Tags;
+  settings: Settings;
+  devGroups: any[];
+  groups: any[];
+  params: Params;
+  online: boolean;
+  createdAt: string;
+  group: string;
+  sharedTo: any[];
+  devicekey: string;
+  deviceUrl: string;
+  brandName: string;
+  showBrand: boolean;
+  brandLogoUrl: string;
+  productModel: string;
+  devConfig: DevConfig;
+  uiid: number;
+}
+```
+
+<Expandable title="Nested interfaces">
+
+```typescript
+interface Params {
+  pulseWidth: number;
+  pulse: string;
+  init: number;
+  sledOnline: string;
+  version: number;
+  timers: any[];
+  controlType: string;
+  partnerApikey: string;
+  bindInfos: BindInfos;
+  rssi: number;
+  staMac: string;
+  startup: string;
+  fwVersion: string;
+  switch: string;
+}
+
+interface BindInfos {
+  gaction: string[];
+}
+
+interface Settings {
+  alarmNotify: number;
+  opsHistory: number;
+  opsNotify: number;
+}
+
+interface Tags {
+  [key: string]: string;
+}
+
+interface Extra2 {
+  _id: string;
+  extra: Extra;
+}
+
+interface Extra {
+  description: string;
+  brandId: string;
+  apmac: string;
+  mac: string;
+  ui: string;
+  modelInfo: string;
+  model: string;
+  manufacturer: string;
+  uiid: number;
+  staMac: string;
+  chipid: string;
+}
+
+interface DevConfig {}
+```
+
+</Expandable>
+
+---
+
+## PowerUsage
+
+Returned by `getDevicePowerUsage()`.
+
+```typescript
+interface PowerUsage {
+  status?: string;
+  monthly?: number;   // total kWh for current month
+  daily?: Daily[];    // per-day breakdown
+  error?: number;
+  msg?: string;
+}
+
+interface Daily {
+  day: number;    // day of month
+  usage: number;  // kWh consumed
+}
+```
+
+---
+
+## TemperatureHumidity
+
+Returned by `getDeviceCurrentTH()`, `getDeviceCurrentTemperature()`, and `getDeviceCurrentHumidity()`.
+
+```typescript
+interface TemperatureHumidity {
+  status?: string;
+  temperature?: string;  // e.g. '20' — returned as string from device
+  humidity?: string;     // e.g. '76' — returned as string from device
+  error?: number;
+  msg?: string;
+}
+```
+
+---
+
+## SwitchCount
+
+Returned by `getDeviceChannelCount()`.
+
+```typescript
+interface SwitchCount {
+  status?: string;
+  switchesAmount?: number;
+  error?: number;
+  msg?: string;
+}
+```
+
+---
+
+## FirmwareVersion
+
+Returned by `getFirmwareVersion()`.
+
+```typescript
+interface FirmwareVersion {
+  status?: string;
+  fwVersion?: string;
+  error?: number;
+  msg?: string;
+}
+```
+
+---
+
+## LoginInfo
+
+Returned by `getCredentials()` / `login()`.
+
+```typescript
+interface LoginInfo {
+  at: string;       // access token
+  rt: string;       // refresh token
+  user: User;
+  region: string;
+}
+
+interface User {
+  _id: string;
+  email: string;
+  appId: string;
+  lang: string;
+  online: boolean;
+  onlineTime: string;
+  ip: string;
+  location: string;
+  offlineTime: string;
+  userStatus: string;
+  appInfos: AppInfo[];
+  isAccepEmailAd: boolean;
+  bindInfos: LoginBindInfos;
+  createdAt: string;
+  apikey: string;
+}
+
+interface AppInfo {
+  appVersion: string;
+  os: string;
+}
+
+interface LoginBindInfos {
+  gaction: string[];
+}
+```

@@ -1,0 +1,40 @@
+---
+title: "ewelink-api: JavaScript library for eWeLink devices"
+description: "ewelink-api is a Node.js and browser JavaScript library for controlling Sonoff and eWeLink smart home devices via cloud API or local LAN."
+---
+
+ewelink-api is a JavaScript library that lets you interact with the eWeLink API using your regular account credentials. It works in Node.js scripts, browser environments, and serverless functions, giving you programmatic control over Sonoff and other eWeLink-compatible smart home devices — including power state, real-time event listeners, power consumption, and offline LAN control via Zeroconf.
+
+## Installation
+
+```bash
+npm install ewelink-api
+```
+
+## Key features
+
+- **Cross-environment** — runs in Node.js, browsers, and serverless runtimes
+- **Device control** — turn devices on, off, or toggle power state
+- **Power monitoring** — read power consumption on devices like Sonoff POW
+- **Real-time events** — listen for device state changes over WebSockets
+- **LAN mode (Zeroconf)** — control devices on the local network without an internet connection
+
+## Explore the docs
+
+<CardGroup cols={2}>
+  <Card title="Quickstart" icon="bolt" href="/quickstart">
+    Install the package and send your first command in minutes.
+  </Card>
+  <Card title="Authentication" icon="key" href="/authentication">
+    Learn the three ways to authenticate: email, phone, or access token.
+  </Card>
+  <Card title="Device control" icon="toggle-on" href="/guides/device-control">
+    Get devices, read power state, and change it with a single call.
+  </Card>
+  <Card title="WebSockets" icon="wifi" href="/guides/websockets">
+    Open a persistent connection and react to real-time device events.
+  </Card>
+  <Card title="Zeroconf / LAN" icon="network-wired" href="/guides/zeroconf">
+    Control devices locally without relying on the eWeLink cloud.
+  </Card>
+</CardGroup>

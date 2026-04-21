@@ -1,0 +1,79 @@
+{
+  "projectType": "sdk-library",
+  "projectName": "ewelink-api",
+  "projectDescription": "A JavaScript/Node.js library for controlling eWeLink smart home devices (Sonoff) via the eWeLink API, supporting both cloud and local LAN (Zeroconf) modes.",
+  "theme": "luma",
+  "primaryColor": "#241c24",
+  "lightColor": "#f4f4f4",
+  "darkColor": "#cb0404",
+  "navigation": {
+    "tabs": [
+      {
+        "tab": "Documentation",
+        "groups": [
+          {
+            "group": "Getting Started",
+            "pages": [
+              "introduction",
+              "quickstart",
+              "authentication"
+            ]
+          },
+          {
+            "group": "Guides",
+            "pages": [
+              "guides/device-control",
+              "guides/websockets",
+              "guides/zeroconf",
+              "guides/power-monitoring"
+            ]
+          },
+          {
+            "group": "Reference",
+            "pages": [
+              "reference/api",
+              "reference/types",
+              "reference/errors"
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  "keyFeatures": [
+    "Runs in browsers, Node.js scripts, or serverless environments",
+    "Control smart home devices (on/off/toggle) via cloud API",
+    "Real-time device event listening via WebSocket",
+    "Local LAN control via Zeroconf (no internet required)",
+    "Power consumption monitoring for Sonoff POW devices",
+    "Temperature and humidity sensor support",
+    "Multi-channel device support (e.g., Sonoff 4CH)",
+    "TypeScript type definitions included"
+  ],
+  "publicApiSurface": [
+    "new eWeLink({ email, password, region })",
+    "new eWeLink({ at, apiKey, region })",
+    "new eWeLink({ devicesCache, arpTable })",
+    "connection.getCredentials()",
+    "connection.getRegion()",
+    "connection.getDevices()",
+    "connection.getDevice(deviceId)",
+    "connection.getDevicePowerState(deviceId, channel?)",
+    "connection.setDevicePowerState(deviceId, state, channel?)",
+    "connection.toggleDevice(deviceId, channel?)",
+    "connection.getDevicePowerUsage(deviceId)",
+    "connection.getDevicePowerUsageRaw(deviceId)",
+    "connection.getDeviceCurrentTH(deviceId)",
+    "connection.getDeviceCurrentTemperature(deviceId)",
+    "connection.getDeviceCurrentHumidity(deviceId)",
+    "connection.getDeviceChannelCount(deviceId)",
+    "connection.getFirmwareVersion(deviceId)",
+    "connection.openWebSocket(callback)",
+    "connection.saveDevicesCache()",
+    "connection.checkDeviceUpdate(deviceId)",
+    "connection.checkDevicesUpdates()",
+    "Zeroconf.saveArpTable({ ip })",
+    "Zeroconf.loadCachedDevices()",
+    "Zeroconf.loadArpTable()"
+  ]
+}

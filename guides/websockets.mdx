@@ -1,0 +1,162 @@
+---
+title: "Listen for real-time device events via WebSocket"
+description: "Subscribe to live device state changes using openWebSocket and react to updates the moment a device reports a new status to eWeLink."
+---
+
+The ewelink-api REST methods are great for one-shot reads and writes, but they require you to poll for changes. `openWebSocket` opens a persistent connection to eWeLink so your script receives device state updates in real time — no polling required. When a switch flips, your callback fires immediately.
+
+<Warning>
+  You must call `getCredentials()` before calling `openWebSocket()`. The WebSocket handshake requires a valid access token (`at`) that is only populated after authentication.
+</Warning>
+
+## Setup
+
+<Steps>
+  <Step title="Instantiate the class">
+    Create a connection using your email, password, and region — the same as any other ewelink-api operation.
+
+    ```javascript
+    const ewelink = require('ewelink-api');
+
+    const connection = new ewelink({
+      email: '<your ewelink email>',
+      password: '<your ewelink password>',
+      region: '<your ewelink region>',
+    });
+    ```
+  </Step>
+
+  <Step title="Authenticate with getCredentials()">
+    Call `getCredentials()` to log in and store the access token on the connection instance. This step is required — `openWebSocket` will not authenticate on its own.
+
+    ```javascript
+    await connection.getCredentials();
+    ```
+  </Step>
+
+  <Step title="Open the WebSocket">
+    Call `openWebSocket` with a callback function. The callback receives each server message as its `data` argument. The method returns the socket instance so you can close it later.
+
+    ```javascript
+    const socket = await connection.openWebSocket(async data => {
+      console.log(data);
+    });
+    ```
+  </Step>
+
+  <Step title="Close the connection when done">
+    Call `socket.close()` to terminate the connection. Until you do, the script will keep running and the callback will fire for every incoming message.
+
+    ```javascript
+    socket.close();
+    ```
+  </Step>
+</Steps>
+
+## Full example
+
+```javascript
+const ewelink = require('ewelink-api');
+
+const connection = new ewelink({
+  email: '<your ewelink email>',
+  password: '<your ewelink password>',
+  region: '<your ewelink region>',
+});
+
+// authenticate first
+await connection.getCredentials();
+
+// open the socket and listen for events
+const socket = await connection.openWebSocket(async data => {
+  // data is the message from eWeLink
+  console.log(data);
+});
+```
+
+## Response format
+
+### Connection handshake
+
+When the connection is successfully established, the first message confirms authentication. The `error: 0` field indicates success.
+
+```javascript
+{
+  error: 0,
+  apikey: '12345678-9012-3456-7890-123456789012',
+  config: {
+    hb: 1,
+    hbInterval: 12345
+  },
+  sequence: '1234567890123'
+}
+```
+
+### Device update message
+
+When a device changes its status, a message with `action: 'update'` is pushed to your callback. The `params.switch` field contains the new state.
+
+```javascript
+{
+  action: 'update',
+  deviceid: '1234567890',
+  apikey: '12345678-9012-3456-7890-123456789012',
+  userAgent: 'device',
+  sequence: '1234567890123',
+  ts: 0,
+  params: {
+    switch: 'on'
+  },
+  from: 'device',
+  seq: '11'
+}
+```
+
+<Note>
+  Because of the nature of a socket connection, the script will keep running until the connection is explicitly closed with `socket.close()`. Design your script accordingly — for example, close the socket inside the callback after processing a specific event, or use a timeout.
+</Note>
+
+## WebSocket-based device control
+
+In addition to the passive event listener above, ewelink-api exposes two methods that query and control device state directly over WebSocket — useful when you need lower-latency control without going through the REST API.
+
+### getWSDevicePowerState(deviceId, options?)
+
+Queries the current power state of a device over WebSocket.
+
+```javascript
+// Single-channel device
+const status = await connection.getWSDevicePowerState('<your device id>');
+console.log(status);
+// { status: 'ok', state: 'off', channel: 1 }
+
+// Specific channel on a multi-channel device
+const ch3 = await connection.getWSDevicePowerState('<your device id>', { channel: 3 });
+
+// All channels on a multi-channel device
+const all = await connection.getWSDevicePowerState('<your device id>', { allChannels: true });
+// { status: 'ok', state: [{ channel: 1, state: 'off' }, { channel: 2, state: 'off' }, ...] }
+
+// Shared device (controlled via a secondary account)
+const shared = await connection.getWSDevicePowerState('<your device id>', { shared: true });
+```
+
+### setWSDevicePowerState(deviceId, state, options?)
+
+Changes a device's power state over WebSocket. Valid states: `on`, `off`, `toggle`.
+
+```javascript
+// Turn on a single-channel device
+const result = await connection.setWSDevicePowerState('<your device id>', 'on');
+console.log(result);
+// { status: 'ok', state: 'on', channel: 1 }
+
+// Toggle channel 3 on a multi-channel device
+await connection.setWSDevicePowerState('<your device id>', 'toggle', { channel: 3 });
+
+// Control a shared device
+await connection.setWSDevicePowerState('<your device id>', 'off', { shared: true });
+
+// Turn on channel 2 of a shared multi-channel device
+await connection.setWSDevicePowerState('<your device id>', 'on', { channel: 2, shared: true });
+```

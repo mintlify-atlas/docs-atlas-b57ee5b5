@@ -1,0 +1,386 @@
+---
+title: "ewelink-api method reference: all public methods"
+description: "Full reference for every public method in ewelink-api: constructor, device control, sensors, power monitoring, WebSocket, and Zeroconf."
+---
+
+ewelink-api exposes a single `eWeLink` class whose methods cover every operation you need: querying and controlling devices, reading sensor data, monitoring power consumption, listening for real-time events, and operating in offline LAN mode via Zeroconf. All methods return Promises — use `async/await` or `.then()`.
+
+## Constructor
+
+```javascript
+const ewelink = require('ewelink-api');
+const connection = new ewelink(params);
+```
+
+<ParamField body="email" type="string">
+  Your eWeLink account email address. Use with `password`.
+</ParamField>
+
+<ParamField body="phoneNumber" type="string">
+  Your eWeLink phone number. Use with `password`. Cannot be combined with `email`.
+</ParamField>
+
+<ParamField body="password" type="string">
+  Your eWeLink account password. Required when using `email` or `phoneNumber`.
+</ParamField>
+
+<ParamField body="at" type="string">
+  A valid eWeLink access token. Use with `apiKey` to skip password-based login.
+</ParamField>
+
+<ParamField body="apiKey" type="string">
+  Your eWeLink API key. Use with `at`.
+</ParamField>
+
+<ParamField body="region" type="string" default="us">
+  The eWeLink region for your account: `us`, `eu`, or `as`. Defaults to `us` — must be set correctly or you will receive 400/401 errors.
+</ParamField>
+
+<ParamField body="devicesCache" type="object">
+  A preloaded devices cache object for Zeroconf/LAN mode (from `Zeroconf.loadCachedDevices()`).
+</ParamField>
+
+<ParamField body="arpTable" type="object">
+  A preloaded ARP table object for Zeroconf/LAN mode (from `Zeroconf.loadArpTable()`).
+</ParamField>
+
+<ParamField body="APP_ID" type="string">
+  Optional custom App ID. Defaults to the Sonoff-provided App ID bundled with the library.
+</ParamField>
+
+<ParamField body="APP_SECRET" type="string">
+  Optional custom App Secret. Defaults to the Sonoff-provided App Secret bundled with the library.
+</ParamField>
+
+---
+
+## Authentication
+
+### `getCredentials()`
+
+Logs in and returns the access token, API key, and region for your account. Useful in serverless contexts where you need credentials for individual requests.
+
+```javascript
+const auth = await connection.getCredentials();
+
+console.log('access token:', auth.at);
+console.log('api key:', auth.user.apikey);
+console.log('region:', auth.region);
+```
+
+<Warning>
+  Access token and API key are invalidated when you log in again using email and password.
+</Warning>
+
+### `getRegion()`
+
+Returns the region your eWeLink account belongs to. Use this if you are unsure which `region` value to pass to the constructor.
+
+```javascript
+const region = await connection.getRegion();
+console.log(region);
+// { email: 'user@email.com', region: 'us' }
+```
+
+---
+
+## Device listing
+
+### `getDevices()`
+
+Returns a list of all devices associated with your logged-in account.
+
+```javascript
+const devices = await connection.getDevices();
+console.log(devices);
+```
+
+Returns an array of [`Device`](/reference/types#device) objects.
+
+### `getDevice(deviceId)`
+
+Returns information for a single device.
+
+<ParamField path="deviceId" type="string" required>
+  The device ID string (found in the `deviceid` field of a Device object).
+</ParamField>
+
+```javascript
+const device = await connection.getDevice('1000abcdef');
+console.log(device);
+```
+
+---
+
+## Device control
+
+### `getDevicePowerState(deviceId, channel?)`
+
+Queries the current power state of a device.
+
+<ParamField path="deviceId" type="string" required>
+  The target device ID.
+</ParamField>
+
+<ParamField path="channel" type="number">
+  Channel number for multi-channel devices (e.g., Sonoff 4CH). Defaults to channel 1.
+</ParamField>
+
+```javascript
+const state = await connection.getDevicePowerState('1000abcdef');
+console.log(state); // { status: 'ok', state: 'on', channel: 1 }
+
+// Multi-channel device
+const ch2 = await connection.getDevicePowerState('1000abcdef', 2);
+```
+
+### `setDevicePowerState(deviceId, state, channel?)`
+
+Changes the power state of a device.
+
+<ParamField path="deviceId" type="string" required>
+  The target device ID.
+</ParamField>
+
+<ParamField path="state" type="string" required>
+  The desired state: `"on"`, `"off"`, or `"toggle"`.
+</ParamField>
+
+<ParamField path="channel" type="number">
+  Channel number for multi-channel devices. Defaults to channel 1.
+</ParamField>
+
+```javascript
+const result = await connection.setDevicePowerState('1000abcdef', 'on');
+console.log(result); // { status: 'ok', state: 'on', channel: 1 }
+
+// Toggle channel 3 on a Sonoff 4CH
+await connection.setDevicePowerState('1000abcdef', 'toggle', 3);
+```
+
+### `toggleDevice(deviceId, channel?)`
+
+Reads the current state and switches it to the opposite.
+
+<ParamField path="deviceId" type="string" required>
+  The target device ID.
+</ParamField>
+
+<ParamField path="channel" type="number">
+  Channel number for multi-channel devices. Defaults to channel 1.
+</ParamField>
+
+```javascript
+const result = await connection.toggleDevice('1000abcdef');
+console.log(result); // { status: 'ok', state: 'off', channel: 1 }
+```
+
+### `getDeviceChannelCount(deviceId)`
+
+Returns the number of channels on a device.
+
+```javascript
+const info = await connection.getDeviceChannelCount('1000abcdef');
+console.log(info); // { status: 'ok', switchesAmount: 4 }
+```
+
+### `getFirmwareVersion(deviceId)`
+
+Returns the current firmware version of a device.
+
+```javascript
+const fw = await connection.getFirmwareVersion('1000abcdef');
+console.log(fw); // { status: 'ok', fwVersion: '3.3.0' }
+```
+
+### `checkDeviceUpdate(deviceId)`
+
+Checks whether a firmware update is available for a single device.
+
+```javascript
+const update = await connection.checkDeviceUpdate('1000abcdef');
+```
+
+### `checkDevicesUpdates()`
+
+Checks all devices for available firmware updates.
+
+```javascript
+const updates = await connection.checkDevicesUpdates();
+```
+
+---
+
+## Sensors
+
+### `getDeviceCurrentTH(deviceId)`
+
+Returns the current temperature and humidity reading from a compatible sensor device (e.g., Sonoff TH10/TH16).
+
+```javascript
+const reading = await connection.getDeviceCurrentTH('1000abcdef');
+console.log(reading); // { status: 'ok', temperature: '20', humidity: '76' }
+```
+
+### `getDeviceCurrentTemperature(deviceId)`
+
+Returns only the temperature reading.
+
+```javascript
+const temp = await connection.getDeviceCurrentTemperature('1000abcdef');
+console.log(temp.temperature); // '20'
+```
+
+### `getDeviceCurrentHumidity(deviceId)`
+
+Returns only the humidity reading.
+
+```javascript
+const hum = await connection.getDeviceCurrentHumidity('1000abcdef');
+console.log(hum.humidity); // '76'
+```
+
+---
+
+## Power monitoring
+
+### `getDevicePowerUsage(deviceId)`
+
+Returns current-month and daily power consumption data for devices that support electricity records, such as Sonoff POW.
+
+```javascript
+const usage = await connection.getDevicePowerUsage('1000abcdef');
+console.log(usage.monthly); // 109.78
+console.log(usage.daily);   // [{ day: 26, usage: 4.19 }, ...]
+```
+
+### `getDevicePowerUsageRaw(deviceId)`
+
+Returns raw power usage data from the device.
+
+```javascript
+const raw = await connection.getDevicePowerUsageRaw('1000abcdef');
+```
+
+---
+
+## WebSocket
+
+### `openWebSocket(callback)`
+
+Opens a persistent WebSocket connection to eWeLink and invokes the callback for each event received.
+
+<ParamField path="callback" type="function" required>
+  A function called with each incoming message. Receives the parsed event object as its argument.
+</ParamField>
+
+```javascript
+// Must call getCredentials() before opening the socket
+await connection.getCredentials();
+
+const socket = await connection.openWebSocket(async data => {
+  console.log(data);
+});
+
+// Close the connection when done
+socket.close();
+```
+
+<Note>
+  The script will keep running until `socket.close()` is called or the connection drops.
+</Note>
+
+### `getWSDevicePowerState(deviceId, options?)`
+
+Queries device power state over WebSocket. Returns state faster than the REST equivalent for real-time applications.
+
+<ParamField path="deviceId" type="string" required>
+  The target device ID.
+</ParamField>
+
+<ParamField path="options.channel" type="number">
+  Channel number for multi-channel devices. Defaults to 1.
+</ParamField>
+
+<ParamField path="options.allChannels" type="boolean">
+  When `true`, returns the state of every channel as an array.
+</ParamField>
+
+<ParamField path="options.shared" type="boolean">
+  When `true`, fetches the device API key to control a device shared from another account.
+</ParamField>
+
+```javascript
+const status = await connection.getWSDevicePowerState('<your device id>');
+// { status: 'ok', state: 'off', channel: 1 }
+
+// All channels
+const all = await connection.getWSDevicePowerState('<your device id>', { allChannels: true });
+// { status: 'ok', state: [{ channel: 1, state: 'off' }, ...] }
+```
+
+### `setWSDevicePowerState(deviceId, state, options?)`
+
+Changes device power state over WebSocket. Valid states: `"on"`, `"off"`, `"toggle"`.
+
+<ParamField path="deviceId" type="string" required>
+  The target device ID.
+</ParamField>
+
+<ParamField path="state" type="string" required>
+  The desired state: `"on"`, `"off"`, or `"toggle"`.
+</ParamField>
+
+<ParamField path="options.channel" type="number">
+  Channel number for multi-channel devices. Defaults to 1.
+</ParamField>
+
+<ParamField path="options.shared" type="boolean">
+  When `true`, fetches the device API key for a shared device.
+</ParamField>
+
+```javascript
+await connection.setWSDevicePowerState('<your device id>', 'on');
+// { status: 'ok', state: 'on', channel: 1 }
+
+// Toggle channel 3
+await connection.setWSDevicePowerState('<your device id>', 'toggle', { channel: 3 });
+```
+
+---
+
+## Zeroconf (LAN mode)
+
+### `saveDevicesCache()`
+
+Fetches all devices from the cloud API and saves them to `devices-cache.json` in the current directory. Required before using Zeroconf mode.
+
+```javascript
+await connection.saveDevicesCache();
+```
+
+### `Zeroconf.saveArpTable({ ip })`
+
+Scans the local network and saves a device ARP table to `arp-table.json`.
+
+```javascript
+const Zeroconf = require('ewelink-api/src/classes/Zeroconf');
+
+await Zeroconf.saveArpTable({ ip: '192.168.1.1' });
+```
+
+### `Zeroconf.loadCachedDevices()`
+
+Loads the previously saved `devices-cache.json` file.
+
+```javascript
+const devicesCache = await Zeroconf.loadCachedDevices();
+```
+
+### `Zeroconf.loadArpTable()`
+
+Loads the previously saved `arp-table.json` file.
+
+```javascript
+const arpTable = await Zeroconf.loadArpTable();
+```

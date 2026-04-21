@@ -1,0 +1,91 @@
+---
+title: "Control devices on your LAN with Zeroconf mode"
+description: "Use Zeroconf to control eWeLink devices directly over your local network without an internet connection, after a one-time cloud setup."
+---
+
+Zeroconf mode lets you send power commands directly to devices on your local network, bypassing the eWeLink cloud entirely. After an initial one-time setup that generates two local cache files, all subsequent on/off commands work without an internet connection — making your automations faster and more resilient.
+
+<Warning>
+  Your computer and the target device must be connected to the same local network. Zeroconf sends commands over LAN and cannot reach devices on a different subnet or over the internet.
+</Warning>
+
+<Note>
+  Only `on` and `off` actions are supported in Zeroconf mode. `toggle` is not available — read the current state first if you need conditional toggling.
+</Note>
+
+## Overview
+
+Zeroconf requires two local cache files before you can control devices offline:
+
+1. **`devices-cache.json`** — device information pulled from the eWeLink cloud.
+2. **`arp-table.json`** — a map of device IDs to local IP addresses discovered from your network.
+
+You generate these files once (or regenerate them when devices join or leave the network), then use them for all subsequent local commands.
+
+## Step 1: Generate the devices cache
+
+Connect to the eWeLink cloud and save device data to a local file. This requires your credentials and an internet connection — it is the only step that does.
+
+```javascript
+const ewelink = require('ewelink-api');
+
+const connection = new ewelink({
+  email: '<your ewelink email>',
+  password: '<your ewelink password>',
+  region: '<your ewelink region>',
+});
+
+await connection.saveDevicesCache();
+```
+
+A file named `devices-cache.json` is created in your current working directory.
+
+## Step 2: Generate the ARP table cache
+
+Use the `Zeroconf` class to scan your network and save a mapping of device local IPs. Pass your network's gateway address as the `ip` field.
+
+```javascript
+const Zeroconf = require('ewelink-api/src/classes/Zeroconf');
+
+await Zeroconf.saveArpTable({
+  ip: '<your network address, ex: 192.168.5.1>'
+});
+```
+
+A file named `arp-table.json` is created in your current working directory.
+
+## Step 3: Control devices offline
+
+Load both cache files using the `Zeroconf` helpers, then create a connection using those cached values instead of your credentials. From here, no internet connection is needed.
+
+```javascript
+const ewelink = require('ewelink-api');
+const Zeroconf = require('ewelink-api/src/classes/Zeroconf');
+
+/* load cache files */
+const devicesCache = await Zeroconf.loadCachedDevices();
+const arpTable = await Zeroconf.loadArpTable();
+
+/* create the connection using cache files */
+const connection = new ewelink({ devicesCache, arpTable });
+
+/* turn device on */
+await connection.setDevicePowerState('<your device id>', 'on');
+
+/* turn device off */
+await connection.setDevicePowerState('<your device id>', 'off');
+```
+
+The `setDevicePowerState` call sends the command directly to the device's local IP address. The response has the same shape as the cloud version:
+
+```javascript
+{
+  status: 'ok',
+  state: 'on',
+  channel: 1
+}
+```
+
+## When to regenerate the cache files
+
+Regenerate `devices-cache.json` when you add or remove devices from your eWeLink account. Regenerate `arp-table.json` when devices are assigned new IP addresses — for example after a router reboot or a DHCP lease change. Running both generation steps again is safe and takes only a few seconds.

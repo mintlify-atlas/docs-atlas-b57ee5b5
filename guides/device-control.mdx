@@ -1,0 +1,244 @@
+---
+title: "Control eWeLink devices: power state and channels"
+description: "Turn eWeLink devices on, off, or toggle their state. Covers single and multi-channel Sonoff devices, firmware queries, and update checks."
+---
+
+Once you have a connection instance, every device on your eWeLink account is a few method calls away. You can list all devices, read their current state, flip a switch, or target a single channel on a multi-outlet device — all through the same consistent async API.
+
+## List and inspect devices
+
+### getDevices()
+
+Returns an array of every device associated with your account. Use the `deviceid` field from each object when calling any other method.
+
+```javascript
+const ewelink = require('ewelink-api');
+
+const connection = new ewelink({
+  email: '<your ewelink email>',
+  password: '<your ewelink password>',
+  region: '<your ewelink region>',
+});
+
+const devices = await connection.getDevices();
+console.log(devices);
+```
+
+### getDevice(deviceId)
+
+Returns full information for a single device by its ID.
+
+```javascript
+const device = await connection.getDevice('<your device id>');
+console.log(device);
+```
+
+### getDeviceChannelCount(deviceId)
+
+Returns the total number of switchable channels on the device. Use this to decide whether to pass a `channel` argument to the power state methods.
+
+```javascript
+const channels = await connection.getDeviceChannelCount('<your device id>');
+console.log(channels);
+```
+
+Response:
+
+```javascript
+{
+  status: 'ok',
+  switchesAmount: 4
+}
+```
+
+## Read power state
+
+### getDevicePowerState(deviceId, channel?)
+
+Queries the current power state of a device. For multi-channel devices, pass the channel number as the second argument.
+
+<Tabs>
+  <Tab title="Single-channel">
+    ```javascript
+    const status = await connection.getDevicePowerState('<your device id>');
+    console.log(status);
+    ```
+
+    Response:
+
+    ```javascript
+    {
+      status: 'ok',
+      state: 'off',
+      channel: 1
+    }
+    ```
+  </Tab>
+  <Tab title="Multi-channel (Sonoff 4CH)">
+    ```javascript
+    // Query channel 2 on a Sonoff 4CH
+    const status = await connection.getDevicePowerState('<your device id>', 2);
+    console.log(status);
+    ```
+
+    Response:
+
+    ```javascript
+    {
+      status: 'ok',
+      state: 'on',
+      channel: 2
+    }
+    ```
+  </Tab>
+</Tabs>
+
+## Set power state
+
+### setDevicePowerState(deviceId, state, channel?)
+
+Changes the power state of a device. The `state` argument must be one of three values.
+
+<Note>
+  Valid state values are `"on"`, `"off"`, and `"toggle"`. Any other value will be rejected by the API.
+</Note>
+
+<Tabs>
+  <Tab title="Single-channel">
+    ```javascript
+    const status = await connection.setDevicePowerState('<your device id>', 'on');
+    console.log(status);
+    ```
+
+    Response:
+
+    ```javascript
+    {
+      status: 'ok',
+      state: 'on',
+      channel: 1
+    }
+    ```
+  </Tab>
+  <Tab title="Multi-channel (Sonoff 4CH)">
+    ```javascript
+    // Toggle channel 3 on a Sonoff 4CH
+    const status = await connection.setDevicePowerState('<your device id>', 'toggle', 3);
+    console.log(status);
+    ```
+
+    Response:
+
+    ```javascript
+    {
+      status: 'ok',
+      state: 'on',
+      channel: 3
+    }
+    ```
+  </Tab>
+</Tabs>
+
+### toggleDevice(deviceId, channel?)
+
+Reads the current state of a device and flips it — `on` becomes `off` and vice versa. This is a convenience wrapper around `getDevicePowerState` and `setDevicePowerState`.
+
+<Tabs>
+  <Tab title="Single-channel">
+    ```javascript
+    const status = await connection.toggleDevice('<your device id>');
+    console.log(status);
+    ```
+
+    Response:
+
+    ```javascript
+    {
+      status: 'ok',
+      state: 'off'
+    }
+    ```
+  </Tab>
+  <Tab title="Multi-channel (Sonoff 4CH)">
+    ```javascript
+    // Toggle channel 1 on a Sonoff 4CH
+    const status = await connection.toggleDevice('<your device id>', 1);
+    console.log(status);
+    ```
+
+    Response:
+
+    ```javascript
+    {
+      status: 'ok',
+      state: 'off'
+    }
+    ```
+  </Tab>
+</Tabs>
+
+## Firmware version and updates
+
+### getFirmwareVersion(deviceId)
+
+Returns the firmware version string currently running on the device.
+
+```javascript
+const firmware = await connection.getFirmwareVersion('<your device id>');
+console.log(firmware);
+```
+
+Response:
+
+```javascript
+{
+  status: 'ok',
+  fwVersion: '3.0.1'
+}
+```
+
+### checkDeviceUpdate(deviceId)
+
+Checks whether a firmware update is available for a single device. Returns a message and, when an update exists, the available version string.
+
+```javascript
+const update = await connection.checkDeviceUpdate('<your device id>');
+console.log(update);
+```
+
+Response when no update is available:
+
+```javascript
+{
+  status: 'ok',
+  msg: 'No update available'
+}
+```
+
+Response when an update is available:
+
+```javascript
+{
+  status: 'ok',
+  msg: 'Update available',
+  version: '3.1.0'
+}
+```
+
+### checkDevicesUpdates()
+
+Checks firmware update availability for every device on your account and returns an array — one entry per device.
+
+```javascript
+const updates = await connection.checkDevicesUpdates();
+console.log(updates);
+```
+
+Response:
+
+```javascript
+[
+  { status: 'ok', deviceId: '1000000001', msg: 'No update available' },
+  { status: 'ok', deviceId: '1000000002', msg: 'Update available', version: '3.1.0' }
+]
+```
